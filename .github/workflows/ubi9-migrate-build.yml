@@ -1,0 +1,52 @@
+name: UBI9 Analyze, Migrate and Build
+on:
+  workflow_dispatch:
+    inputs:
+      source_dockerfile:
+        description: Source Dockerfile to migrate
+        required: true
+        default: docker/Dockerfile.cpu
+  pull_request:
+    paths:
+      - "**/Dockerfile*"
+      - "src/ubi9_agent/**"
+      - "config/**"
+      - "knowledge/**"
+      - ".github/workflows/ubi9-migrate-build.yml"
+permissions:
+  contents: read
+jobs:
+  migrate-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -e .
+      - name: Analyze repository
+        run: ubi9-agent analyze --repo . --source "${{ inputs.source_dockerfile || 'docker/Dockerfile.cpu' }}"
+      - name: Generate UBI9 Dockerfile
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+        run: ubi9-agent migrate --repo . --source "${{ inputs.source_dockerfile || 'docker/Dockerfile.cpu' }}"
+      - name: Resolve target Dockerfile
+        id: target
+        run: echo "path=${{ inputs.source_dockerfile || 'docker/Dockerfile.cpu' }}.ubi9" >> "$GITHUB_OUTPUT"
+      - name: Build linux/amd64 image
+        run: |
+          set -o pipefail
+          docker build --platform linux/amd64 -f "${{ steps.target.outputs.path }}" -t ubi9-migration:ci . 2>&1 | tee build.log
+      - name: Smoke test
+        run: scripts/smoke_test.sh ubi9-migration:ci
+      - name: Generate report
+        if: always()
+        run: ubi9-agent report --repo .
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ubi9-migration-evidence
+          path: |
+            reports/
+            build.log
+            ${{ steps.target.outputs.path }}

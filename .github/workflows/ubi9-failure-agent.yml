@@ -1,0 +1,51 @@
+name: UBI9 Failure Analysis
+on:
+  workflow_run:
+    workflows: ["UBI9 Analyze, Migrate and Build"]
+    types: [completed]
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+jobs:
+  analyze:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -e .
+      - name: Download failed run logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run view "${{ github.event.workflow_run.id }}" --log-failed > build.log
+      - name: Analyze failure
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+        run: ubi9-agent analyze-failure --repo . --dockerfile "${UBI9_DOCKERFILE:-docker/Dockerfile.cpu.ubi9}" --log build.log
+      - name: Apply policy-approved fix
+        id: fix
+        continue-on-error: true
+        run: ubi9-agent apply-safe-fix --repo . --dockerfile "${UBI9_DOCKERFILE:-docker/Dockerfile.cpu.ubi9}"
+      - name: Create pull request
+        if: steps.fix.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.AGENT_PUSH_TOKEN || github.token }}
+        run: |
+          BRANCH="ubi9-agent/fix-${{ github.event.workflow_run.id }}"
+          git config user.name "ubi9-migration-agent"
+          git config user.email "ubi9-migration-agent@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add .
+          git commit -m "fix: apply policy-approved UBI9 build correction"
+          git push origin "$BRANCH"
+          gh pr create --title "UBI9 agent: build correction" --body-file reports/failure-analysis.json --base "${{ github.event.repository.default_branch }}" --head "$BRANCH"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ubi9-failure-analysis
+          path: |
+            reports/
+            build.log

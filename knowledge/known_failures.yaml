@@ -1,0 +1,16 @@
+rules:
+  - pattern: "command not found: dnf"
+    category: dockerfile_syntax
+    advice: "Confirm that the selected base image is UBI9 and contains dnf or use microdnf for minimal images."
+  - pattern: "Unable to locate package"
+    category: package_name_mapping
+    advice: "Map the Debian package to its approved UBI9 RPM equivalent."
+  - pattern: "No such file or directory"
+    category: missing_approved_package
+    advice: "Inspect the missing header or executable and add only its approved UBI9 package."
+  - pattern: "Illegal instruction"
+    category: cpu_instruction_error
+    advice: "Do not auto-fix. Review compiler target flags and the runtime CPU feature set."
+  - pattern: "certificate verify failed"
+    category: certificate_error
+    advice: "Review CA trust and network interception. Do not treat this as a missing curl package."

@@ -1,0 +1,41 @@
+source:
+  dockerfile: ""
+  context: "."
+
+target:
+  dockerfile: ""
+  base_image: "registry.access.redhat.com/ubi9/ubi:9.6"
+  architecture: "linux/amd64"
+  build_target: ""
+
+build:
+  image: "ubi9-migration:ci"
+  max_attempts: 3
+  max_jobs: 8
+
+ai:
+  enabled: true
+  model_env: "OPENAI_MODEL"
+  default_model: "gpt-5"
+  api_key_env: "OPENAI_API_KEY"
+
+policy:
+  preserve_original_dockerfile: true
+  require_pull_request: true
+  allow_source_changes: false
+  auto_fix_categories:
+    - missing_approved_package
+    - package_name_mapping
+    - apt_to_dnf_conversion
+    - dockerfile_syntax
+  manual_review_categories:
+    - external_repository
+    - dependency_version_change
+    - compiler_flag_change
+    - source_code_change
+    - cpu_instruction_error
+
+smoke_tests:
+  commands:
+    - "uname -m"
+    - "cat /etc/redhat-release"

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ubi9-migration-platform"
+version = "0.1.0"
+description = "Analyze repositories, generate UBI9 Dockerfiles, validate builds, and propose safe fixes."
+requires-python = ">=3.10"
+dependencies = [
+  "openai>=1.0.0",
+  "PyYAML>=6.0",
+]
+
+[project.scripts]
+ubi9-agent = "ubi9_agent.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
