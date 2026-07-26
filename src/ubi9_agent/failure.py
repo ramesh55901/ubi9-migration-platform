@@ -26,7 +26,7 @@ def analyze_failure(
             prompt = (repo / "prompts" / "failure.md").read_text(encoding="utf-8")
             payload = f"Dockerfile:\n{current}\n\nBuild log:\n{log}"
             result = AIClient().json(prompt, payload)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             result = {
                 "category": "unknown",
                 "root_cause": "AI analysis unavailable",

@@ -10,7 +10,9 @@ class AIClient:
         try:
             from openai import OpenAI
         except ImportError as exc:
-            raise RuntimeError("Install the project dependencies to enable AI mode: pip install -e .") from exc
+            raise RuntimeError(
+                "Install the project dependencies to enable AI mode: pip install -e ."
+            ) from exc
         self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         self.model = model or os.environ.get("OPENAI_MODEL", "gpt-5")
 

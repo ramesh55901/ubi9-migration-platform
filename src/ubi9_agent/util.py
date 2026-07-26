@@ -22,7 +22,7 @@ def write_json(path: str | Path, data: Any) -> None:
 def extract_json(text: str) -> dict[str, Any]:
     text = text.strip()
     if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.S)
+        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.DOTALL)
     start = text.find("{")
     end = text.rfind("}")
     if start < 0 or end < start:

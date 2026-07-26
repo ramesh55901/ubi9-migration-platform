@@ -12,6 +12,15 @@ dependencies = [
   "PyYAML>=6.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+  "black>=24.0,<26",
+  "mypy>=1.10",
+  "types-PyYAML>=6.0",
+]
+
 [project.scripts]
 ubi9-agent = "ubi9_agent.cli:main"
 

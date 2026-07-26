@@ -13,16 +13,18 @@ def _fallback(source_text: str, base: str, mappings: dict) -> tuple[str, list[st
         r"^FROM\s+(?:ubuntu|debian)(?::\S+)?",
         f"FROM {base}",
         source_text,
-        flags=re.M | re.I,
+        flags=re.MULTILINE | re.IGNORECASE,
     )
     pattern = re.compile(
         r"apt-get\s+update\s*&&\s*apt-get\s+install\s+(?:-y\s+)?(?P<pkgs>[^;&\n\\]*(?:\\\n[^;&]*)*)",
-        re.I,
+        re.IGNORECASE,
     )
 
     def repl(match: re.Match[str]) -> str:
         raw = re.sub(r"\\\n", " ", match.group("pkgs"))
-        packages = [p for p in re.split(r"\s+", raw.strip()) if p and not p.startswith("-")]
+        packages = [
+            p for p in re.split(r"\s+", raw.strip()) if p and not p.startswith("-")
+        ]
         output: list[str] = []
         for package in packages:
             mapped = mappings.get(package)
@@ -39,11 +41,15 @@ def _fallback(source_text: str, base: str, mappings: dict) -> tuple[str, list[st
     return text, sorted(set(risks))
 
 
-def migrate(repo: str | Path, source: str, config_path: str, no_ai: bool = False) -> dict:
+def migrate(
+    repo: str | Path, source: str, config_path: str, no_ai: bool = False
+) -> dict:
     repo = Path(repo).resolve()
     src = (repo / source).resolve()
     cfg = load_yaml(config_path)
-    mappings = load_yaml(repo / "knowledge" / "package_mappings.yaml").get("packages", {})
+    mappings = load_yaml(repo / "knowledge" / "package_mappings.yaml").get(
+        "packages", {}
+    )
     destination = cfg.get("target", {}).get("dockerfile")
     dst = (repo / destination).resolve() if destination else target_path(src)
     if dst == src:
@@ -64,7 +70,7 @@ def migrate(repo: str | Path, source: str, config_path: str, no_ai: bool = False
                 f"Source Dockerfile:\n{original}"
             )
             result = AIClient().json(prompt, payload)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             result = {
                 "summary": "Deterministic fallback used because AI was unavailable.",
                 "risks": [str(exc)],
